@@ -50,3 +50,13 @@ def check_project_can_be_deleted(project: CharityProject):
                 "были инвестированы средства"
             )
         )
+
+
+async def handle_google_api_errors(callable_, *args, **kwargs):
+    try:
+        return await callable_(*args, **kwargs)
+    except Exception as error:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при работе с Google Sheets: {error}"
+        )

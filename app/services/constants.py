@@ -1,5 +1,4 @@
 from collections import namedtuple
-
 from app.core.config import settings
 
 
@@ -7,6 +6,9 @@ from app.core.config import settings
 DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 SPREADSHEET_LOCALE = 'ru_RU'
 
+# === Габариты таблицы ===
+TABLE_ROW_COUNT = 100
+TABLE_COLUMN_COUNT = 3
 
 # === Свойства листа Google Sheets ===
 DEFAULT_SHEET_TITLE = 'Страница1'
@@ -19,11 +21,25 @@ DEFAULT_SHEET_PROPERTIES = {
 
 DEFAULT_GRID_PROPERTIES = {
     'gridProperties': {
-        'rowCount': 100,
-        'columnCount': 3
+        'rowCount': TABLE_ROW_COUNT,
+        'columnCount': TABLE_COLUMN_COUNT
     }
 }
 
+SPREADSHEET_CONFIG_TEMPLATE = {
+    'properties': {
+        'title': '',
+        'locale': SPREADSHEET_LOCALE
+    },
+    'sheets': [{
+        'properties': {
+            **DEFAULT_SHEET_PROPERTIES,
+            **DEFAULT_GRID_PROPERTIES
+        }
+    }]
+}
+
+SPREADSHEET_URL_TEMPLATE = "https://docs.google.com/spreadsheets/d/{}"
 
 # === Конфигурация обновления таблицы ===
 TABLE_INPUT_OPTION = 'USER_ENTERED'
@@ -35,11 +51,9 @@ TableUpdatePayload = namedtuple(
     ['majorDimension', 'values']
 )
 
-
 # === Конфигурация API ===
 SHEETS_API_CONFIG = {'sheets': 'v4'}
 DRIVE_API_CONFIG = {'drive': 'v3'}
-
 
 # === Права доступа к таблице ===
 ACCESS_TYPE = 'user'
@@ -52,7 +66,6 @@ PermissionPayload = namedtuple(
 )
 
 PERMISSION_RESPONSE_FIELDS = 'id'
-
 
 # === Заголовки таблицы по умолчанию ===
 TABLE_HEADER = [

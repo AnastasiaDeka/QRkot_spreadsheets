@@ -4,12 +4,11 @@ from aiogoogle import Aiogoogle
 
 from .constants import (
     DATETIME_FORMAT,
-    SPREADSHEET_LOCALE,
-    DEFAULT_SHEET_PROPERTIES,
-    DEFAULT_GRID_PROPERTIES,
     TABLE_INPUT_OPTION,
     TABLE_DIMENSION,
     TABLE_RANGE,
+    TABLE_ROW_COUNT,
+    TABLE_COLUMN_COUNT,
     TableUpdatePayload,
     SHEETS_API_CONFIG,
     DRIVE_API_CONFIG,
@@ -19,6 +18,9 @@ from .constants import (
     PermissionPayload,
     PERMISSION_RESPONSE_FIELDS,
     TABLE_HEADER,
+    SPREADSHEET_CONFIG_TEMPLATE,
+    SPREADSHEET_URL_TEMPLATE,
+    SPREADSHEET_CONFIG_TEMPLATE,
 )
 
 
@@ -30,29 +32,21 @@ def format_timedelta(tdelta, fmt: str) -> str:
     return fmt.format(**delta_info)
 
 
-async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
-    """Создаёт новую Google-таблицу и возвращает её идентификатор."""
+async def spreadsheets_create(wrapper_services: Aiogoogle) -> tuple[str, str]:
     current_time = datetime.now().strftime(DATETIME_FORMAT)
 
     service = await wrapper_services.discover(**SHEETS_API_CONFIG)
 
-    spreadsheet_config = {
-        'properties': {
-            'title': f'Отчет от {current_time}',
-            'locale': SPREADSHEET_LOCALE,
-        },
-        'sheets': [{
-            'properties': {
-                **DEFAULT_SHEET_PROPERTIES,
-                **DEFAULT_GRID_PROPERTIES,
-            }
-        }]
-    }
+    spreadsheet_config = SPREADSHEET_CONFIG_TEMPLATE.copy()
+    spreadsheet_config['properties']['title'] = f'Отчет от {current_time}'
 
     response = await wrapper_services.as_service_account(
         service.spreadsheets.create(json=spreadsheet_config)
     )
-    return response['spreadsheetId']
+
+    spreadsheet_id = response['spreadsheetId']
+    spreadsheet_url = SPREADSHEET_URL_TEMPLATE.format(spreadsheet_id)
+    return spreadsheet_id, spreadsheet_url
 
 
 async def set_user_permissions(
@@ -78,7 +72,7 @@ async def set_user_permissions(
 
 
 async def spreadsheets_update_value(
-    spreadsheetid: str,
+    spreadsheet_id: str,
     projects: list,
     wrapper_services: Aiogoogle
 ) -> None:
@@ -101,6 +95,13 @@ async def spreadsheets_update_value(
             project["description"],
         ])
 
+    if len(rows_data) > TABLE_ROW_COUNT:
+        raise ValueError("Слишком много строк для созданной таблицы")
+
+    max_columns = max(len(row) for row in rows_data)
+    if max_columns > TABLE_COLUMN_COUNT:
+        raise ValueError("Слишком много столбцов для созданной таблицы")
+
     update_payload = TableUpdatePayload(
         majorDimension=TABLE_DIMENSION,
         values=rows_data,
@@ -108,7 +109,7 @@ async def spreadsheets_update_value(
 
     await wrapper_services.as_service_account(
         service.spreadsheets.values.update(
-            spreadsheetId=spreadsheetid,
+            spreadsheetId=spreadsheet_id,
             range=TABLE_RANGE,
             valueInputOption=TABLE_INPUT_OPTION,
             json=update_payload,
