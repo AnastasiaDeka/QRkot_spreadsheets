@@ -22,6 +22,7 @@ from .constants import (
     SPREADSHEET_URL_TEMPLATE,
     SPREADSHEET_CONFIG_TEMPLATE,
 )
+from app.services.exceptions import TooManyRowsError, TooManyColumnsError
 
 
 def format_timedelta(tdelta, fmt: str) -> str:
@@ -96,11 +97,15 @@ async def spreadsheets_update_value(
         ])
 
     if len(rows_data) > TABLE_ROW_COUNT:
-        raise ValueError("Слишком много строк для созданной таблицы")
+        raise TooManyRowsError(
+            "Слишком много строк для созданной таблицы"
+        )
 
     max_columns = max(len(row) for row in rows_data)
     if max_columns > TABLE_COLUMN_COUNT:
-        raise ValueError("Слишком много столбцов для созданной таблицы")
+        raise TooManyColumnsError(
+            "Слишком много столбцов для созданной таблицы"
+        )
 
     update_payload = TableUpdatePayload(
         majorDimension=TABLE_DIMENSION,
